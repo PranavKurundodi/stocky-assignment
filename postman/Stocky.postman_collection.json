@@ -1,0 +1,767 @@
+{
+  "info": {
+    "name": "Stocky",
+    "description": "Stocky assignment API collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Mock price server",
+      "description": "Stand-in for the external price vendor. Admin requests send X-Admin-Token: {{adminToken}}; leave adminToken empty if ADMIN_TOKEN is not set.",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{priceBaseUrl}}/health",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "200 {\"status\":\"ok\"}, or 503 {\"status\":\"down\"} in outage mode."
+          }
+        },
+        {
+          "name": "List prices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{priceBaseUrl}}/prices",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "prices"
+              ]
+            },
+            "description": "All quotes sorted by symbol. Affected by outage."
+          }
+        },
+        {
+          "name": "Get price",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{priceBaseUrl}}/prices/RELIANCE",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "prices",
+                "RELIANCE"
+              ]
+            },
+            "description": "One quote. 404 for an unknown symbol."
+          }
+        },
+        {
+          "name": "Get price (unknown symbol)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{priceBaseUrl}}/prices/FAKECORP",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "prices",
+                "FAKECORP"
+              ]
+            },
+            "description": "Returns 404 {\"error\":\"unknown stock symbol\",\"symbol\":\"FAKECORP\"}."
+          }
+        },
+        {
+          "name": "Admin: override price",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-Admin-Token",
+                "value": "{{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{priceBaseUrl}}/admin/prices/RELIANCE",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "prices",
+                "RELIANCE"
+              ]
+            },
+            "description": "Price must be a JSON string, positive, at most 4 decimal places. 200 / 400 / 404.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": \"1000.0000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: add stock",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Admin-Token",
+                "value": "{{adminToken}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{priceBaseUrl}}/admin/stocks",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "stocks"
+              ]
+            },
+            "description": "201 / 400 invalid symbol or price / 409 already exists.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"WIPRO\",\n  \"price\": \"500.0000\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: remove stock",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-Admin-Token",
+                "value": "{{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{priceBaseUrl}}/admin/stocks/WIPRO",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "stocks",
+                "WIPRO"
+              ]
+            },
+            "description": "204 / 404."
+          }
+        },
+        {
+          "name": "Admin: fail",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Admin-Token",
+                "value": "{{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{priceBaseUrl}}/admin/fail",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "fail"
+              ]
+            },
+            "description": "Start outage mode. Idempotent."
+          }
+        },
+        {
+          "name": "Admin: recover",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-Admin-Token",
+                "value": "{{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{priceBaseUrl}}/admin/recover",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "recover"
+              ]
+            },
+            "description": "End outage mode. Idempotent. State is preserved."
+          }
+        },
+        {
+          "name": "Admin: state",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Admin-Token",
+                "value": "{{adminToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{priceBaseUrl}}/admin/state",
+              "host": [
+                "{{priceBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "state"
+              ]
+            },
+            "description": "down, tick_interval and all prices."
+          }
+        },
+        {
+          "name": "Scenarios",
+          "description": "Run each subfolder top to bottom.",
+          "item": [
+            {
+              "name": "Outage",
+              "item": [
+                {
+                  "name": "1. Fail",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/fail",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "fail"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Get prices (expect 503)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/prices",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "prices"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 503\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([503]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Recover",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/recover",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "recover"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Get prices (expect 200)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/prices",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "prices"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Stock split",
+              "description": "2:1 split of RELIANCE: the price halves.",
+              "item": [
+                {
+                  "name": "1. Get RELIANCE",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/prices/RELIANCE",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "prices",
+                        "RELIANCE"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// Remember half of the current price for the next request.",
+                          "// toFixed(4) keeps the server's 4 decimal place rule.",
+                          "const price = parseFloat(pm.response.json().price);",
+                          "pm.collectionVariables.set('relianceHalfPrice', (price / 2).toFixed(4));",
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Override RELIANCE to half",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/prices/RELIANCE",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "RELIANCE"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"price\": \"{{relianceHalfPrice}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Delisting",
+              "item": [
+                {
+                  "name": "1. Delete HDFCBANK",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/stocks/HDFCBANK",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "stocks",
+                        "HDFCBANK"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 204\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([204]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Get HDFCBANK (expect 404)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/prices/HDFCBANK",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "prices",
+                        "HDFCBANK"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 404\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([404]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Merger",
+              "description": "Hypothetical: ICICIBANK is acquired by HDFCBANK. The target stops being quoted and the acquirer must exist.",
+              "item": [
+                {
+                  "name": "1. Delete acquired stock ICICIBANK",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/stocks/ICICIBANK",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "stocks",
+                        "ICICIBANK"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 204\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([204]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Add acquirer HDFCBANK if missing",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/stocks",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "stocks"
+                      ]
+                    },
+                    "description": "201 if HDFCBANK was missing (for example after the Delisting scenario), 409 if it is already quoted. Both are fine.",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"symbol\": \"HDFCBANK\",\n  \"price\": \"750.0000\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201 or 409\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "New listing",
+              "item": [
+                {
+                  "name": "1. Add WIPRO",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/stocks",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "stocks"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"symbol\": \"WIPRO\",\n  \"price\": \"500.0000\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Get WIPRO",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/prices/WIPRO",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "prices",
+                        "WIPRO"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "priceBaseUrl",
+      "value": "http://localhost:8081"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "relianceHalfPrice",
+      "value": ""
+    }
+  ]
+}
