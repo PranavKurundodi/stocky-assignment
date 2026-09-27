@@ -748,6 +748,1626 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Stocky",
+      "description": "The Stocky API on {{stockyBaseUrl}}. Seeded users are user_1, user_2, user_3 (go run ./cmd/seed --reset).",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/health",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "Pings the database. 200 or 503."
+          }
+        },
+        {
+          "name": "Create user",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/users",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
+            },
+            "description": "201, 409 if the id exists, 400 if invalid.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": \"user_4\",\n  \"name\": \"Ravi Kumar\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Create reward (new key)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/reward",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "reward"
+              ]
+            },
+            "description": "A fresh Idempotency-Key every send, so each send creates a reward. Saves reward_id into {{rewardId}}. Add \"rewarded_at\" (RFC3339) to backdate.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"TCS\",\n  \"quantity\": \"1.5\",\n  \"reason\": \"REFERRAL\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                  "});",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"rewardId\", pm.response.json().reward_id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create reward (fixed key, replay demo)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "demo-fixed-key-1",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/reward",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "reward"
+              ]
+            },
+            "description": "Fixed Idempotency-Key. First send: 201. Every later send: 200 with the same reward. Change the body and send: 409.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"INFY\",\n  \"quantity\": \"2\",\n  \"reason\": \"MILESTONE\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status is 201 or 200\", function () {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 200]);",
+                  "});",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    pm.collectionVariables.set(\"rewardId\", pm.response.json().reward_id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Reverse reward",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/reward/{{rewardId}}/reverse",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "reward",
+                "{{rewardId}}",
+                "reverse"
+              ]
+            },
+            "description": "Reverses {{rewardId}} (set by the create requests). Sending again is a no-op that returns 200."
+          }
+        },
+        {
+          "name": "Today stocks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/today-stocks/user_1",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "today-stocks",
+                "user_1"
+              ]
+            },
+            "description": "Rewards in today's IST day, newest first."
+          }
+        },
+        {
+          "name": "Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/stats/user_1",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "stats",
+                "user_1"
+              ]
+            },
+            "description": "Shares rewarded today by symbol, and current portfolio value."
+          }
+        },
+        {
+          "name": "Portfolio",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "portfolio",
+                "user_1"
+              ]
+            },
+            "description": "Holdings per symbol with current INR value."
+          }
+        },
+        {
+          "name": "Historical INR",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/historical-inr/user_1",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "historical-inr",
+                "user_1"
+              ]
+            },
+            "description": "End-of-day INR value for each past day up to yesterday."
+          }
+        },
+        {
+          "name": "Admin: refresh prices",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/admin/prices/refresh",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "prices",
+                "refresh"
+              ]
+            },
+            "description": "Fetch prices now. 503 if the vendor is down (after 3 attempts)."
+          }
+        },
+        {
+          "name": "Admin: corporate action (split)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/admin/corporate-actions",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "corporate-actions"
+              ]
+            },
+            "description": "1:2 split doubles every holder's RELIANCE.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SPLIT\",\n  \"symbol\": \"RELIANCE\",\n  \"ratio_from\": \"1\",\n  \"ratio_to\": \"2\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: corporate action (merger)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/admin/corporate-actions",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "corporate-actions"
+              ]
+            },
+            "description": "Every 2 ICICIBANK become 1 HDFCBANK; ICICIBANK is delisted.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"MERGER\",\n  \"symbol\": \"ICICIBANK\",\n  \"new_symbol\": \"HDFCBANK\",\n  \"ratio_from\": \"2\",\n  \"ratio_to\": \"1\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: corporate action (delisting)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/admin/corporate-actions",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "corporate-actions"
+              ]
+            },
+            "description": "Marks HDFCBANK delisted. Holdings stay, valued at the last known price.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"DELISTING\",\n  \"symbol\": \"HDFCBANK\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Admin: ledger verify",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{stockyBaseUrl}}/admin/ledger/verify",
+              "host": [
+                "{{stockyBaseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "ledger",
+                "verify"
+              ]
+            },
+            "description": "Every ledger transaction must balance per asset."
+          }
+        },
+        {
+          "name": "Stocky scenarios",
+          "description": "Run each subfolder top to bottom, with the mock and Stocky running. The corporate action scenarios change data, so start from `cd stocky && go run ./cmd/seed --reset` (and a freshly started mock) before running them.",
+          "item": [
+            {
+              "name": "Reward then replay",
+              "item": [
+                {
+                  "name": "1. Create reward (201)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{scenarioKey}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"TCS\",\n  \"quantity\": \"1\",\n  \"reason\": \"REFERRAL\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// A fresh key for this scenario run, shared by the next request.",
+                          "pm.collectionVariables.set(\"scenarioKey\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});",
+                          "if (pm.response.code === 201 || pm.response.code === 200) {",
+                          "    pm.collectionVariables.set(\"scenarioRewardId\", pm.response.json().reward_id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Same key, same body (200)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{scenarioKey}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"TCS\",\n  \"quantity\": \"1\",\n  \"reason\": \"REFERRAL\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"same reward returned\", function () {",
+                          "    pm.expect(pm.response.json().reward_id).to.eql(pm.collectionVariables.get(\"scenarioRewardId\"));",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Key reuse with a different body",
+              "item": [
+                {
+                  "name": "1. Create reward (201)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{scenarioKey}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"TCS\",\n  \"quantity\": \"1\",\n  \"reason\": \"REFERRAL\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "prerequest",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "// A fresh key for this scenario run, shared by the next request.",
+                          "pm.collectionVariables.set(\"scenarioKey\", pm.variables.replaceIn(\"{{$guid}}\"));"
+                        ]
+                      }
+                    },
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Same key, quantity 2 (409)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{scenarioKey}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"TCS\",\n  \"quantity\": \"2\",\n  \"reason\": \"REFERRAL\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 409\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([409]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Reverse twice",
+              "item": [
+                {
+                  "name": "1. Create reward",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{$guid}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"TCS\",\n  \"quantity\": \"1\",\n  \"reason\": \"REFERRAL\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});",
+                          "if (pm.response.code === 201 || pm.response.code === 200) {",
+                          "    pm.collectionVariables.set(\"scenarioRewardId\", pm.response.json().reward_id);",
+                          "}"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Reverse (200)",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward/{{scenarioRewardId}}/reverse",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward",
+                        "{{scenarioRewardId}}",
+                        "reverse"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"status is REVERSED\", function () { pm.expect(pm.response.json().status).to.eql(\"REVERSED\"); });"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Reverse again (200, no-op)",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward/{{scenarioRewardId}}/reverse",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward",
+                        "{{scenarioRewardId}}",
+                        "reverse"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"still REVERSED\", function () { pm.expect(pm.response.json().status).to.eql(\"REVERSED\"); });"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Outage demo",
+              "description": "Take the vendor down and watch Stocky keep its last prices. is_stale turns true once the last good price is older than PRICE_STALE_AFTER (2h by default); start Stocky with PRICE_STALE_AFTER=1m and wait a minute after step 2 to see it.",
+              "item": [
+                {
+                  "name": "1. Mock: fail",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/fail",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "fail"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Stocky: refresh prices (503, about 3s)",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/prices/refresh",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "refresh"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 503\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([503]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Stocky: portfolio still answers",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "portfolio",
+                        "user_1"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                          "pm.test(\"staleness is reported\", function () {",
+                          "    const body = pm.response.json();",
+                          "    pm.expect(body.holdings).to.be.an(\"array\");",
+                          "    body.holdings.forEach(h => pm.expect(h.is_stale).to.be.a(\"boolean\"));",
+                          "    console.log(\"is_stale per holding:\", body.holdings.map(h => h.symbol + \"=\" + h.is_stale).join(\", \"));",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Mock: recover",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/recover",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "recover"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "5. Stocky: refresh prices (200)",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/prices/refresh",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "refresh"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "6. Stocky: portfolio fresh again",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "portfolio",
+                        "user_1"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"nothing stale\", function () {",
+                          "    pm.response.json().holdings.filter(h => !h.delisted && h.price !== null).forEach(h => pm.expect(h.is_stale, h.symbol).to.eql(false));",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Split",
+              "description": "RELIANCE 1:2 split. Stocky doubles every holding; the vendor halves the price; after the refresh the holding is doubled and its value is about the same.",
+              "item": [
+                {
+                  "name": "1. Portfolio before",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "portfolio",
+                        "user_1"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                          "const r = pm.response.json().holdings.find(h => h.symbol === \"RELIANCE\");",
+                          "pm.collectionVariables.set(\"relianceQtyBefore\", r ? r.quantity : \"0\");",
+                          "pm.collectionVariables.set(\"relianceValueBefore\", r && r.value_inr ? r.value_inr : \"0\");"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Split RELIANCE 1:2 (201)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/corporate-actions",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "corporate-actions"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"type\": \"SPLIT\",\n  \"symbol\": \"RELIANCE\",\n  \"ratio_from\": \"1\",\n  \"ratio_to\": \"2\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Mock: current RELIANCE price",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/prices/RELIANCE",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "prices",
+                        "RELIANCE"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "// Half the vendor price, kept to 4 decimal places as the mock requires.",
+                          "pm.collectionVariables.set(\"mockRelianceHalf\", (parseFloat(pm.response.json().price) / 2).toFixed(4));"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Mock: halve RELIANCE",
+                  "request": {
+                    "method": "PUT",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/prices/RELIANCE",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "RELIANCE"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"price\": \"{{mockRelianceHalf}}\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "5. Stocky: refresh prices",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/prices/refresh",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "refresh"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "6. Portfolio after: shares doubled, value unchanged",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "portfolio",
+                        "user_1"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                          "const r = pm.response.json().holdings.find(h => h.symbol === \"RELIANCE\");",
+                          "// Test-only float math; the server works in decimals.",
+                          "pm.test(\"RELIANCE holding doubled\", function () {",
+                          "    pm.expect(r, \"user_1 holds RELIANCE (run seed --reset first)\").to.exist;",
+                          "    const before = parseFloat(pm.collectionVariables.get(\"relianceQtyBefore\"));",
+                          "    pm.expect(parseFloat(r.quantity).toFixed(6)).to.eql((before * 2).toFixed(6));",
+                          "});",
+                          "pm.test(\"price halved by the vendor\", function () {",
+                          "    // The mock ticks +/-1% a minute, so allow a little drift since step 4.",
+                          "    const half = parseFloat(pm.collectionVariables.get(\"mockRelianceHalf\"));",
+                          "    pm.expect(Math.abs(parseFloat(r.price) - half) / half).to.be.below(0.03);",
+                          "});",
+                          "pm.test(\"value roughly unchanged by the split\", function () {",
+                          "    const before = parseFloat(pm.collectionVariables.get(\"relianceValueBefore\"));",
+                          "    pm.expect(Math.abs(parseFloat(r.value_inr) - before) / before).to.be.below(0.05);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Merger",
+              "description": "ICICIBANK merges into HDFCBANK, 2 old shares for 1 new.",
+              "item": [
+                {
+                  "name": "1. Merge ICICIBANK into HDFCBANK 2:1 (201)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/corporate-actions",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "corporate-actions"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"type\": \"MERGER\",\n  \"symbol\": \"ICICIBANK\",\n  \"new_symbol\": \"HDFCBANK\",\n  \"ratio_from\": \"2\",\n  \"ratio_to\": \"1\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Mock: stop quoting ICICIBANK",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/stocks/ICICIBANK",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "stocks",
+                        "ICICIBANK"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 204 or 404\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Portfolio: no ICICIBANK left",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "portfolio",
+                        "user_1"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"ICICIBANK converted\", function () {",
+                          "    pm.expect(pm.response.json().holdings.map(h => h.symbol)).to.not.include(\"ICICIBANK\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Stocky: refresh prices",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/prices/refresh",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "refresh"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "name": "Delisting",
+              "item": [
+                {
+                  "name": "1. Delist HDFCBANK (201)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/corporate-actions",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "corporate-actions"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"type\": \"DELISTING\",\n  \"symbol\": \"HDFCBANK\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 201\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([201]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "2. Mock: stop quoting HDFCBANK",
+                  "request": {
+                    "method": "DELETE",
+                    "header": [
+                      {
+                        "key": "X-Admin-Token",
+                        "value": "{{adminToken}}",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{priceBaseUrl}}/admin/stocks/HDFCBANK",
+                      "host": [
+                        "{{priceBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "stocks",
+                        "HDFCBANK"
+                      ]
+                    },
+                    "description": "A delisted stock stops trading, so the vendor stops quoting it. 404 if already removed."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 204 or 404\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([204, 404]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "3. Stocky: refresh (HDFCBANK not reported missing)",
+                  "request": {
+                    "method": "POST",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/prices/refresh",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "prices",
+                        "refresh"
+                      ]
+                    },
+                    "description": "Stocky only warns about ACTIVE stocks the feed leaves out. HDFCBANK is DELISTED, so its absence is expected."
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () { pm.response.to.have.status(200); });",
+                          "pm.test(\"HDFCBANK is not reported missing\", function () {",
+                          "    pm.expect(pm.response.json().missing_symbols).to.not.include(\"HDFCBANK\");",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "4. Reward on HDFCBANK (422)",
+                  "request": {
+                    "method": "POST",
+                    "header": [
+                      {
+                        "key": "Idempotency-Key",
+                        "value": "{{$guid}}",
+                        "type": "text"
+                      },
+                      {
+                        "key": "Content-Type",
+                        "value": "application/json",
+                        "type": "text"
+                      }
+                    ],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/reward",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "reward"
+                      ]
+                    },
+                    "description": "",
+                    "body": {
+                      "mode": "raw",
+                      "raw": "{\n  \"user_id\": \"user_1\",\n  \"symbol\": \"HDFCBANK\",\n  \"quantity\": \"1\",\n  \"reason\": \"OTHER\"\n}",
+                      "options": {
+                        "raw": {
+                          "language": "json"
+                        }
+                      }
+                    }
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 422\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([422]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "name": "5. Portfolio: HDFCBANK flagged delisted, valued at last price",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/portfolio/user_1",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "portfolio",
+                        "user_1"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"HDFCBANK is delisted and still valued\", function () {",
+                          "    const h = pm.response.json().holdings.find(x => x.symbol === \"HDFCBANK\");",
+                          "    pm.expect(h, \"user_1 holds HDFCBANK (run seed --reset first)\").to.exist;",
+                          "    pm.expect(h.delisted).to.eql(true);",
+                          "    pm.expect(h.value_inr).to.not.eql(null);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ],
+              "description": "Stocky marks HDFCBANK delisted, the vendor stops quoting it, new rewards on it are refused, and existing holdings stay, valued at the last known price."
+            },
+            {
+              "name": "Ledger verify",
+              "item": [
+                {
+                  "name": "1. Verify (no unbalanced transactions)",
+                  "request": {
+                    "method": "GET",
+                    "header": [],
+                    "url": {
+                      "raw": "{{stockyBaseUrl}}/admin/ledger/verify",
+                      "host": [
+                        "{{stockyBaseUrl}}"
+                      ],
+                      "path": [
+                        "admin",
+                        "ledger",
+                        "verify"
+                      ]
+                    },
+                    "description": ""
+                  },
+                  "event": [
+                    {
+                      "listen": "test",
+                      "script": {
+                        "type": "text/javascript",
+                        "exec": [
+                          "pm.test(\"status is 200\", function () {",
+                          "    pm.expect(pm.response.code).to.be.oneOf([200]);",
+                          "});",
+                          "pm.test(\"ledger balances\", function () {",
+                          "    pm.expect(pm.response.json().unbalanced).to.eql([]);",
+                          "});"
+                        ]
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -761,6 +2381,34 @@
     },
     {
       "key": "relianceHalfPrice",
+      "value": ""
+    },
+    {
+      "key": "stockyBaseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "rewardId",
+      "value": ""
+    },
+    {
+      "key": "scenarioKey",
+      "value": ""
+    },
+    {
+      "key": "scenarioRewardId",
+      "value": ""
+    },
+    {
+      "key": "relianceQtyBefore",
+      "value": ""
+    },
+    {
+      "key": "mockRelianceHalf",
+      "value": ""
+    },
+    {
+      "key": "relianceValueBefore",
       "value": ""
     }
   ]
