@@ -19,3 +19,7 @@ vendor/
 .vscode/
 *.swp
 .DS_Store
+
+# Local config for the stocky app (see stocky/.env.example).
+# The root .env is the mock server's config and is committed on purpose.
+stocky/.env
